@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Smart Letter Drafter - AGMHSS</title>
+    <title>AI Smart Letter Drafter - AGMHSS (ஏஜிஎம்ஹெச்எஸ்எஸ்)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-    <!-- Google Fonts for formal/official use -->
+    <!-- Google Fonts: includes strong Tamil support -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=PT+Serif:wght@400;700&family=Roboto:wght@400;700&family=Times+New+Roman&family=Georgia&family=Cormorant+Garamond:wght@400;700&family=Libre+Baskerville:wght@400;700&family=Tinos:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=PT+Serif:wght@400;700&family=Roboto:wght@400;700&family=Georgia&family=Cormorant+Garamond:wght@400;700&family=Libre+Baskerville:wght@400;700&family=Tinos:wght@400;700&family=Noto+Sans+Tamil:wght@400;700&family=Noto+Serif+Tamil:wght@400;700&family=Anek+Tamil:wght@400;700&family=Tiro+Tamil:wght@400&family=Akshar:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Tinos:wght@400;700&display=swap');
@@ -30,6 +30,7 @@
             height: 100%;
             display: flex;
             flex-direction: column;
+            direction: auto; /* Helps with mixed LTR scripts */
         }
         @media print { 
             .no-print { display: none; } 
@@ -42,7 +43,7 @@
 
 <div class="no-print bg-indigo-900 text-white p-4 mb-6 shadow-lg flex justify-between items-center px-10">
     <h1 class="text-2xl font-bold">AI Letter Pad SPA</h1>
-    <span class="text-sm bg-indigo-800 px-3 py-1 rounded">AGMHSS IT Dept</span>
+    <span class="text-sm bg-indigo-800 px-3 py-1 rounded">AGMHSS IT Dept | ஏஜிஎம்ஹெச்எஸ்எஸ் ஐடி துறை</span>
 </div>
 
 <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -54,45 +55,55 @@
             <div class="space-y-5">
 
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700">Letterhead Template</label>
+                    <label class="block text-sm font-semibold text-gray-700">Letterhead Template (கடித தலைப்பு)</label>
                     <input type="file" id="templateInput" accept="image/*" class="mt-1 block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
                 </div>
 
                 <div class="p-3 bg-amber-50 rounded-lg border border-amber-200">
-                    <label class="block text-sm font-bold text-amber-800 italic">Reply Mode OCR</label>
+                    <label class="block text-sm font-bold text-amber-800 italic">Reply Mode OCR (பெற்ற கடிதத்தை ஸ்கேன் செய்)</label>
                     <input type="file" id="receivedLetterInput" accept="image/*" class="mt-1 block w-full text-xs">
-                    <button onclick="processOCR()" id="ocrBtn" class="mt-2 w-full bg-amber-600 text-white py-1 rounded text-sm font-bold hover:bg-amber-700">Scan Received Letter</button>
+                    <button onclick="processOCR()" id="ocrBtn" class="mt-2 w-full bg-amber-600 text-white py-1 rounded text-sm font-bold hover:bg-amber-700">Scan Received Letter / பெற்ற கடிதத்தை ஸ்கேன் செய்</button>
                 </div>
 
                 <div class="space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
                     <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Text Formatting</p>
 
                     <div>
-                        <div class="flex justify-between text-xs mb-1"><span>Font Size</span><span id="fontSizeVal">12 pt</span></div>
+                        <div class="flex justify-between text-xs mb-1"><span>Font Size / எழுத்துரு அளவு</span><span id="fontSizeVal">12 pt</span></div>
                         <input type="range" id="fontSize" min="8" max="60" value="12" step="1" class="w-full h-1.5 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-indigo-600">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Font Family</label>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Font Family / எழுத்துரு வகை</label>
                         <select id="fontFamily" class="w-full p-1.5 border border-gray-300 rounded text-sm">
-                            <option value="'Tinos', serif">Tinos (default)</option>
+                            <!-- Tamil-focused first -->
+                            <option value="'Noto Sans Tamil', sans-serif">Noto Sans Tamil (modern, clean)</option>
+                            <option value="'Noto Serif Tamil', serif">Noto Serif Tamil (traditional serif)</option>
+                            <option value="'Anek Tamil', sans-serif">Anek Tamil (stylish, headlines)</option>
+                            <option value="'Tiro Tamil', serif">Tiro Tamil (literary, traditional)</option>
+                            <option value="'Latha', 'Vijaya', sans-serif">Latha (system font, common in Windows)</option>
+                            <option value="'Vijaya', 'Latha', sans-serif">Vijaya (system font, bilingual)</option>
+                            <option value="'Akshar', sans-serif">Akshar (robust, multi-Indian lang)</option>
+
+                            <!-- Original fonts -->
+                            <option value="'Tinos', serif" selected>Tinos (default)</option>
                             <option value="'PT Serif', serif">PT Serif</option>
                             <option value="'Georgia', serif">Georgia</option>
                             <option value="'Times New Roman', serif">Times New Roman</option>
                             <option value="'Cormorant Garamond', serif">Cormorant Garamond</option>
                             <option value="'Libre Baskerville', serif">Libre Baskerville</option>
-                            <option value="'Roboto', sans-serif">Roboto (modern)</option>
+                            <option value="'Roboto', sans-serif">Roboto (modern sans)</option>
                         </select>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Font Color</label>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Font Color / எழுத்து நிறம்</label>
                         <input type="color" id="fontColor" value="#111827" class="w-10 h-8 border border-gray-300 rounded cursor-pointer">
                     </div>
                 </div>
 
                 <div class="space-y-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
-                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Margin Adjustments (mm)</p>
+                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Margin Adjustments (mm) / விளிம்பு அமைப்பு</p>
                     <div>
                         <div class="flex justify-between text-xs mb-1"><span>Top Margin</span><span id="topVal">45mm</span></div>
                         <input type="range" id="topMargin" min="10" max="180" value="45" class="w-full h-1.5 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-indigo-600">
@@ -108,8 +119,8 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700">Purpose / Context / Reply To</label>
-                    <textarea id="userPrompt" rows="4" class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Describe what the letter should say, or paste key points from the received letter..."></textarea>
+                    <label class="block text-sm font-semibold text-gray-700">Purpose / Context / Reply To (நோக்கம் / சூழல் / பதில்)</label>
+                    <textarea id="userPrompt" rows="4" class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Describe what the letter should say (English or தமிழ்), or paste key points from the received letter... \nஎழுத்து ஆங்கிலம் அல்லது தமிழில் இருக்கலாம்."></textarea>
                 </div>
 
                 <div>
@@ -118,7 +129,7 @@
                     <p class="text-xs text-gray-500 mt-1">Get free key at <a href="https://console.groq.com/keys" target="_blank" class="text-indigo-600 hover:underline">console.groq.com/keys</a>. Stored only in this browser session.</p>
                 </div>
 
-                <button onclick="generateAIDraft()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 shadow-md">✨ Generate AI Reply Draft</button>
+                <button onclick="generateAIDraft()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 shadow-md">✨ Generate AI Reply Draft / AI பதில் வரைவு உருவாக்கு</button>
             </div>
         </div>
     </div>
@@ -133,24 +144,25 @@
                         <span contenteditable="true" id="currentDate" class="outline-none border-b border-transparent hover:border-gray-300"></span>
                     </div>
                     
-                    <div id="salutation" contenteditable="true" class="font-bold outline-none hover:bg-indigo-50">Respected Sir/Madam,</div>
+                    <div id="salutation" contenteditable="true" class="font-bold outline-none hover:bg-indigo-50">Respected Sir/Madam, / அருமை சார்/மேடம்,</div>
                     
                     <div id="bodyText" contenteditable="true" class="leading-relaxed text-justify outline-none min-h-[200px] hover:bg-indigo-50">
-                        This area is editable. Use the AI tool above to generate a proper reply, or type/edit manually. Adjust formatting using the controls.
+                        This area is editable. Type in English or தமிழ். Use AI to generate reply. Adjust formatting as needed.
+                        இந்த பகுதி திருத்தக்கூடியது. ஆங்கிலம் அல்லது தமிழில் தட்டச்சு செய்யலாம்.
                     </div>
                     
                     <div id="closing" class="mt-auto pt-10">
-                        <div id="thanksField" contenteditable="true" class="outline-none hover:bg-indigo-50">Thanking you,</div>
+                        <div id="thanksField" contenteditable="true" class="outline-none hover:bg-indigo-50">Thanking you, / நன்றி,</div>
                         <div class="pt-8">
-                            <p>Yours faithfully,</p>
-                            <p id="signatory" contenteditable="true" class="font-bold mt-4 outline-none hover:bg-indigo-50">[Name & Designation]</p>
+                            <p>Yours faithfully, / உங்கள் உண்மையான,</p>
+                            <p id="signatory" contenteditable="true" class="font-bold mt-4 outline-none hover:bg-indigo-50">[Name & Designation] / [பெயர் & பதவி]</p>
                         </div>
                     </div>
                 </div>
             </div>
             
             <button onclick="downloadPDF()" class="no-print mt-4 w-full bg-rose-600 text-white py-4 rounded-xl font-bold shadow-xl hover:bg-rose-700 flex items-center justify-center gap-3 active:scale-95 transition-all">
-                Download Final PDF
+                Download Final PDF / இறுதி PDF பதிவிறக்கு
             </button>
         </div>
     </div>
@@ -234,7 +246,7 @@ document.getElementById('templateInput').onchange = function(e) {
 };
 
 // ────────────────────────────────────────────────
-// OCR
+// OCR - Now with Tamil + English support
 // ────────────────────────────────────────────────
 async function processOCR() {
     const file = document.getElementById('receivedLetterInput').files[0];
@@ -245,15 +257,15 @@ async function processOCR() {
     btn.disabled = true;
 
     try {
-        const { data: { text } } = await Tesseract.recognize(file, 'eng', {
+        const { data: { text } } = await Tesseract.recognize(file, 'tam+eng', {  // ← Tamil + English
             logger: m => console.log(m)
         });
         document.getElementById('userPrompt').value = 
-            "Write a polite, formal reply letter in official style to the following received letter. Keep it concise, professional, suitable for school/government correspondence:\n\n" + text.trim().slice(0, 1800);
+            "Write a polite, formal reply letter in official style (use Tamil if the original is mostly in Tamil, English otherwise, or bilingual as appropriate) to the following received letter. Keep it concise, professional, suitable for school/government correspondence in Tamil Nadu:\n\n" + text.trim().slice(0, 1800);
         btn.innerText = "✅ Scanned";
     } catch (err) {
         console.error(err);
-        alert("OCR failed. Try a clearer image.");
+        alert("OCR failed. Try a clearer image or check if Tamil traineddata is supported in this Tesseract version.");
         btn.innerText = "Retry Scan";
     } finally {
         btn.disabled = false;
@@ -261,7 +273,7 @@ async function processOCR() {
 }
 
 // ────────────────────────────────────────────────
-// AI Draft – Using Groq API
+// AI Draft – Enhanced for bilingual English/Tamil
 // ────────────────────────────────────────────────
 async function generateAIDraft() {
     const promptInput = document.getElementById('userPrompt').value.trim();
@@ -288,15 +300,15 @@ async function generateAIDraft() {
                 messages: [
                     {
                         role: "system",
-                        content: "You are a professional assistant writing formal official letters for a school (AGMHSS). Use polite, respectful Indian English suitable for government/school correspondence. Structure: salutation already exists, so start directly with the body. Keep total body 150–350 words unless very complex. End naturally before closing lines."
+                        content: "You are a professional assistant writing formal official letters for AGMHSS school in Tamil Nadu. Use polite, respectful language. If the input is mostly in Tamil, reply fully in Tamil. If mostly English, reply in English. If mixed or bilingual context, use appropriate bilingual style. Structure: start directly with body paragraphs (salutation already exists). Keep body 150–400 words. Use proper Tamil Unicode. End naturally before closing."
                     },
                     {
                         role: "user",
-                        content: promptInput + "\n\nWrite only the main body paragraphs of the letter (no salutation, no closing like 'Yours faithfully'). Make it ready to paste into the body area."
+                        content: promptInput + "\n\nWrite only the main body paragraphs of the letter (no salutation, no closing like 'Yours faithfully' or 'நன்றி'). Make it ready to paste into the body area."
                     }
                 ],
-                temperature: 0.65,
-                max_tokens: 600
+                temperature: 0.7,
+                max_tokens: 800
             })
         });
 
@@ -343,4 +355,4 @@ function downloadPDF() {
 }
 </script>
 </body>
-                        </html>
+    </html>
