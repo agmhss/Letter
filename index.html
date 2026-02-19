@@ -11,22 +11,27 @@
         @import url('https://fonts.googleapis.com/css2?family=Tinos:wght@400;700&display=swap');
         .paper-font { font-family: 'Tinos', serif; }
         
-        #letter-preview { 
-            width: 210mm; 
-            height: 297mm; 
-            position: relative; 
-            background: white;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            overflow: hidden; 
-        }
+                #letter-preview { 
+    width: 210mm; 
+    height: 297mm; 
+    position: relative; 
+    background-color: white;
+    margin: 0 auto;
+    overflow: hidden;
+    /* This forces the browser to treat the element as a single block */
+    page-break-inside: avoid; 
+}
         
         #bgTemplate {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            object-fit: fill;
-            z-index: 0;
-        }
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 210mm; /* Match A4 width exactly */
+    height: 297mm; /* Match A4 height exactly */
+    object-fit: stretch; /* Ensures it fills the whole page */
+    z-index: 0;
+    display: block;
+}
 
         #contentArea { 
             position: relative;
@@ -38,6 +43,11 @@
         }
 
         @media print { .no-print { display: none; } }
+
+
+
+
+        
     </style>
 </head>
 <body class="bg-slate-300 min-h-screen pb-10">
@@ -196,16 +206,32 @@
     }
 
     function downloadPDF() {
-        const element = document.getElementById('letter-preview');
-        const opt = {
-            margin: 0,
-            filename: 'Official_Letter.pdf',
-            image: { type: 'jpeg', quality: 1 },
-            html2canvas: { scale: 3, useCORS: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-        html2pdf().set(opt).from(element).save();
-    }
+    const element = document.getElementById('letter-preview');
+    
+    // Hide any hover effects or cursors before capturing
+    const opt = {
+        margin: 0,
+        filename: 'Official_Letter.pdf',
+        image: { type: 'jpeg', quality: 1.0 },
+        html2canvas: { 
+            scale: 2, // Sufficient for high quality without crashing mobile browsers
+            useCORS: true, 
+            logging: false,
+            letterRendering: true,
+            allowTaint: false
+        },
+        jsPDF: { 
+            unit: 'mm', 
+            format: 'a4', 
+            orientation: 'portrait',
+            compress: true
+        }
+    };
+
+    // Use the Promise-based API for a cleaner export
+    html2pdf().set(opt).from(element).save();
+}
+
 </script>
 </body>
 </html>
