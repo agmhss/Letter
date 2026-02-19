@@ -12,7 +12,6 @@
         .paper-font { font-family: 'Tinos', serif; }
         #letter-preview { width: 210mm; min-height: 297mm; position: relative; }
         @media print { .no-print { display: none; } }
-        /* Smooth transition for margin adjustments */
         #contentArea { transition: padding 0.1s ease; }
     </style>
 </head>
@@ -46,7 +45,7 @@
                     
                     <div>
                         <div class="flex justify-between text-xs mb-1"><span>Top Margin</span><span id="topVal">45mm</span></div>
-                        <input type="range" id="topMargin" min="10" max="120" value="45" class="w-full h-1.5 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+                        <input type="range" id="topMargin" min="10" max="160" value="45" class="w-full h-1.5 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-indigo-600">
                     </div>
 
                     <div>
@@ -62,7 +61,7 @@
 
                 <div>
                     <label class="block text-sm font-semibold text-gray-700">Purpose / Context</label>
-                    <textarea id="userPrompt" rows="3" class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="e.g. Leave request or Reply context..."></textarea>
+                    <textarea id="userPrompt" rows="3" class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="e.g. Leave request..."></textarea>
                 </div>
 
                 <button onclick="generateAIDraft()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 shadow-md">✨ Generate AI Draft</button>
@@ -80,37 +79,36 @@
                         <span contenteditable="true" id="currentDate" class="outline-none border-b border-transparent hover:border-gray-300"></span>
                     </div>
                     
-                    <div id="salutation" contenteditable="true" class="font-bold outline-none hover:bg-indigo-50">Respected Sir/Madam,</div>
+                    <div id="salutation" contenteditable="true" class="font-bold outline-none hover:bg-indigo-50 text-left">Respected Sir/Madam,</div>
                     
                     <div id="bodyText" contenteditable="true" class="leading-relaxed text-justify outline-none min-h-[200px] hover:bg-indigo-50">
-                        This area is editable. Use the AI tool to draft a response or type directly here. Adjust the sliders on the left to align this text with your letterhead's borders.
+                        Select a template and use the AI to generate a professional letter.
                     </div>
                     
-                    <div id="closing" class="mt-12">
+                    <div id="closing" class="mt-12 text-left">
                         <div id="thanksField" contenteditable="true" class="outline-none hover:bg-indigo-50">Thanking you,</div>
                         <div class="pt-10">
                             <div id="SignedBy" contenteditable="true" class="outline-none hover:bg-indigo-50">Yours faithfully,</div>
-                        <div class="pt-11">
-                            <p id="signatory" contenteditable="true" class="font-bold mt-4 outline-none hover:bg-indigo-50">[Signature/Designation]</p>
+                        <div class="pt-12">
+                            <p id="signatory" contenteditable="true" class="font-bold mt-4 outline-none hover:bg-indigo-50">[Your Name]</p>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <button onclick="downloadPDF()" class="no-print w-full bg-rose-600 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-rose-700 flex items-center justify-center gap-2">
-                Download Final PDF
+            <button onclick="downloadPDF()" class="no-print w-full bg-rose-600 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-rose-700 flex items-center justify-center gap-2 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download PDF
             </button>
         </div>
     </div>
 </div>
 
 <script>
-    // Initialize Date
-    document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-GB', {
-        day: 'numeric', month: 'long', year: 'numeric'
-    });
+    document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
-    // 1. Margin Controls Logic
     const content = document.getElementById('contentArea');
     const sliders = {
         top: { el: document.getElementById('topMargin'), val: document.getElementById('topVal'), prop: 'paddingTop' },
@@ -126,7 +124,6 @@
         };
     });
 
-    // 2. Template Logic
     document.getElementById('templateInput').onchange = function(e) {
         const reader = new FileReader();
         reader.onload = (event) => {
@@ -137,38 +134,34 @@
         reader.readAsDataURL(e.target.files[0]);
     };
 
-    // 3. OCR Logic
     async function processOCR() {
         const file = document.getElementById('receivedLetterInput').files[0];
         if (!file) return alert("Upload a letter first.");
         const btn = document.getElementById('ocrBtn');
-        btn.innerText = "⏳ Processing...";
+        btn.innerText = "⏳ Scanning...";
         try {
             const { data: { text } } = await Tesseract.recognize(file, 'eng');
             document.getElementById('userPrompt').value = "REPLY TO: " + text;
             btn.innerText = "✅ Done";
-        } catch (e) { alert("OCR Failed"); btn.innerText = "Retry"; }
+        } catch (e) { btn.innerText = "Error"; }
     }
 
-    // 4. AI Logic (Placeholder)
     async function generateAIDraft() {
-        const prompt = document.getElementById('userPrompt').value;
         const body = document.getElementById('bodyText');
         body.innerHTML = "<i>AI Drafting...</i>";
         setTimeout(() => {
-            body.innerText = "With regard to the modernization of our computer lab under the Smart School Initiative, we are pleased to submit the detailed project proposal. " + (prompt.includes("REPLY") ? "As requested in your previous communication, we have attached the technical specifications." : "");
-            document.getElementById('signatory').innerText = "Rajarajan\nIT In-Charge, AGMHSS";
+            body.innerText = "I am writing this letter regarding the current school initiatives. We have reviewed the requirements and look forward to a positive collaboration.";
+            document.getElementById('signatory').innerText = "Rajarajan\nIT Dept, AGMHSS";
         }, 1200);
     }
 
-    // 5. PDF Download
     function downloadPDF() {
         const element = document.getElementById('letter-preview');
         const opt = {
             margin: 0,
-            filename: 'Official_Document.pdf',
+            filename: 'Official_Letter.pdf',
             image: { type: 'jpeg', quality: 1 },
-            html2canvas: { scale: 3, useCORS: true, letterRendering: true },
+            html2canvas: { scale: 3, useCORS: true },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
         html2pdf().set(opt).from(element).save();
