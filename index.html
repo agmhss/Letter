@@ -7,13 +7,35 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <!-- Google Fonts for formal/official use -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=PT+Serif:wght@400;700&family=Roboto:wght@400;700&family=Times+New+Roman&family=Georgia&family=Cormorant+Garamond:wght@400;700&family=Libre+Baskerville:wght@400;700&family=Tinos:wght@400;700&display=swap" rel="stylesheet">
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Tinos:wght@400;700&display=swap');
         .paper-font { font-family: 'Tinos', serif; }
-        #letter-preview { width: 210mm; min-height: 297mm; position: relative; }
-        @media print { .no-print { display: none; } }
-        /* Smooth transition for margin adjustments */
-        #contentArea { transition: padding 0.1s ease; }
+        #letter-preview { 
+            width: 210mm; 
+            min-height: 297mm; 
+            position: relative; 
+            background-color: white;
+            margin: 20px auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+        #contentArea { 
+            transition: all 0.2s ease; 
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        @media print { 
+            .no-print { display: none; } 
+            body { margin: 0; background: white; }
+            #letter-preview { margin: 0; box-shadow: none; }
+        }
     </style>
 </head>
 <body class="bg-slate-200 min-h-screen pb-10">
@@ -30,6 +52,7 @@
             <h2 class="font-bold text-lg mb-4">⚙️ Controls & Alignment</h2>
             
             <div class="space-y-5">
+
                 <div>
                     <label class="block text-sm font-semibold text-gray-700">Letterhead Template</label>
                     <input type="file" id="templateInput" accept="image/*" class="mt-1 block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
@@ -41,19 +64,43 @@
                     <button onclick="processOCR()" id="ocrBtn" class="mt-2 w-full bg-amber-600 text-white py-1 rounded text-sm font-bold hover:bg-amber-700">Scan Received Letter</button>
                 </div>
 
+                <div class="space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Text Formatting</p>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1"><span>Font Size</span><span id="fontSizeVal">12 pt</span></div>
+                        <input type="range" id="fontSize" min="8" max="60" value="12" step="1" class="w-full h-1.5 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Font Family</label>
+                        <select id="fontFamily" class="w-full p-1.5 border border-gray-300 rounded text-sm">
+                            <option value="'Tinos', serif">Tinos (default)</option>
+                            <option value="'PT Serif', serif">PT Serif</option>
+                            <option value="'Georgia', serif">Georgia</option>
+                            <option value="'Times New Roman', serif">Times New Roman</option>
+                            <option value="'Cormorant Garamond', serif">Cormorant Garamond</option>
+                            <option value="'Libre Baskerville', serif">Libre Baskerville</option>
+                            <option value="'Roboto', sans-serif">Roboto (modern)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Font Color</label>
+                        <input type="color" id="fontColor" value="#111827" class="w-10 h-8 border border-gray-300 rounded cursor-pointer">
+                    </div>
+                </div>
+
                 <div class="space-y-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
                     <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Margin Adjustments (mm)</p>
-                    
                     <div>
                         <div class="flex justify-between text-xs mb-1"><span>Top Margin</span><span id="topVal">45mm</span></div>
                         <input type="range" id="topMargin" min="10" max="180" value="45" class="w-full h-1.5 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-indigo-600">
                     </div>
-
                     <div>
                         <div class="flex justify-between text-xs mb-1"><span>Left Margin</span><span id="leftVal">25mm</span></div>
                         <input type="range" id="leftMargin" min="10" max="90" value="25" class="w-full h-1.5 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-indigo-600">
                     </div>
-
                     <div>
                         <div class="flex justify-between text-xs mb-1"><span>Right Margin</span><span id="rightVal">20mm</span></div>
                         <input type="range" id="rightMargin" min="10" max="90" value="20" class="w-full h-1.5 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-indigo-600">
@@ -61,21 +108,27 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700">Purpose / Context</label>
-                    <textarea id="userPrompt" rows="3" class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="e.g. Leave request or Reply context..."></textarea>
+                    <label class="block text-sm font-semibold text-gray-700">Purpose / Context / Reply To</label>
+                    <textarea id="userPrompt" rows="4" class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Describe what the letter should say, or paste key points from the received letter..."></textarea>
                 </div>
 
-                <button onclick="generateAIDraft()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 shadow-md">✨ Generate AI Draft</button>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700">Your Groq API Key</label>
+                    <input type="password" id="groqApiKey" placeholder="gsk_..." class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <p class="text-xs text-gray-500 mt-1">Get free key at <a href="https://console.groq.com/keys" target="_blank" class="text-indigo-600 hover:underline">console.groq.com/keys</a>. Stored only in this browser session.</p>
+                </div>
+
+                <button onclick="generateAIDraft()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 shadow-md">✨ Generate AI Reply Draft</button>
             </div>
         </div>
     </div>
 
     <div class="lg:col-span-8 flex justify-center">
-        <div class="sticky top-4">
-            <div id="letter-preview" class="bg-white shadow-2xl overflow-hidden mb-4">
+        <div class="sticky top-4 w-full max-w-[210mm]">
+            <div id="letter-preview" class="bg-white shadow-2xl overflow-hidden mb-6">
                 <img id="bgTemplate" class="absolute top-0 left-0 w-full h-full object-fill z-0 hidden">
                 
-                <div id="contentArea" class="relative z-10 paper-font text-gray-900 space-y-6 text-[12pt]" style="padding: 45mm 20mm 20mm 25mm;">
+                <div id="contentArea" class="relative z-10 paper-font text-gray-900 space-y-6 text-[12pt]" style="padding: 45mm 20mm 40mm 25mm;">
                     <div class="text-right">
                         <span contenteditable="true" id="currentDate" class="outline-none border-b border-transparent hover:border-gray-300"></span>
                     </div>
@@ -83,113 +136,211 @@
                     <div id="salutation" contenteditable="true" class="font-bold outline-none hover:bg-indigo-50">Respected Sir/Madam,</div>
                     
                     <div id="bodyText" contenteditable="true" class="leading-relaxed text-justify outline-none min-h-[200px] hover:bg-indigo-50">
-                        This area is editable. Use the AI tool to draft a response or type directly here. Adjust the sliders on the left to align this text with your letterhead's borders.
+                        This area is editable. Use the AI tool above to generate a proper reply, or type/edit manually. Adjust formatting using the controls.
                     </div>
                     
-                    <div id="closing" class="mt-12">
+                    <div id="closing" class="mt-auto pt-10">
                         <div id="thanksField" contenteditable="true" class="outline-none hover:bg-indigo-50">Thanking you,</div>
-                        <div class="pt-10">
+                        <div class="pt-8">
                             <p>Yours faithfully,</p>
-                            <p id="signatory" contenteditable="true" class="font-bold mt-4 outline-none hover:bg-indigo-50">[Signature/Designation]</p>
+                            <p id="signatory" contenteditable="true" class="font-bold mt-4 outline-none hover:bg-indigo-50">[Name & Designation]</p>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <button onclick="downloadPDF()" class="no-print mt-6 w-full bg-rose-600 text-white py-4 rounded-xl font-bold shadow-xl hover:bg-rose-700 flex items-center justify-center gap-3 active:scale-95 transition-all">
-            Download Final PDF
-        </button>
+            <button onclick="downloadPDF()" class="no-print mt-4 w-full bg-rose-600 text-white py-4 rounded-xl font-bold shadow-xl hover:bg-rose-700 flex items-center justify-center gap-3 active:scale-95 transition-all">
+                Download Final PDF
+            </button>
+        </div>
     </div>
 </div>
-                <script>
-    // Initialize Date
-    document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-GB', {
-        day: 'numeric', month: 'long', year: 'numeric'
-    });
 
-    // 1. Margin Controls Logic
-    const content = document.getElementById('contentArea');
-    const sliders = {
-        top: { el: document.getElementById('topMargin'), val: document.getElementById('topVal'), prop: 'paddingTop' },
-        left: { el: document.getElementById('leftMargin'), val: document.getElementById('leftVal'), prop: 'paddingLeft' },
-        right: { el: document.getElementById('rightMargin'), val: document.getElementById('rightVal'), prop: 'paddingRight' }
+<script>
+// ────────────────────────────────────────────────
+// Initialize
+// ────────────────────────────────────────────────
+document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-GB', {
+    day: 'numeric', month: 'long', year: 'numeric'
+});
+
+const contentArea = document.getElementById('contentArea');
+const bodyText = document.getElementById('bodyText');
+
+// ────────────────────────────────────────────────
+// API Key handling
+// ────────────────────────────────────────────────
+let groqApiKey = localStorage.getItem('groqApiKey') || '';
+const apiKeyInput = document.getElementById('groqApiKey');
+apiKeyInput.value = groqApiKey;
+
+apiKeyInput.onchange = () => {
+    groqApiKey = apiKeyInput.value.trim();
+    localStorage.setItem('groqApiKey', groqApiKey);
+};
+
+// ────────────────────────────────────────────────
+// Font Size
+// ────────────────────────────────────────────────
+document.getElementById('fontSize').oninput = function() {
+    const size = this.value + 'pt';
+    contentArea.style.fontSize = size;
+    document.getElementById('fontSizeVal').innerText = size;
+};
+
+// ────────────────────────────────────────────────
+// Font Family
+// ────────────────────────────────────────────────
+document.getElementById('fontFamily').onchange = function() {
+    contentArea.style.fontFamily = this.value;
+};
+
+// ────────────────────────────────────────────────
+// Font Color
+// ────────────────────────────────────────────────
+document.getElementById('fontColor').oninput = function() {
+    contentArea.style.color = this.value;
+};
+
+// ────────────────────────────────────────────────
+// Margin Controls
+// ────────────────────────────────────────────────
+const sliders = {
+    top:    { el: document.getElementById('topMargin'),    val: document.getElementById('topVal'),    prop: 'paddingTop' },
+    left:   { el: document.getElementById('leftMargin'),   val: document.getElementById('leftVal'),   prop: 'paddingLeft' },
+    right:  { el: document.getElementById('rightMargin'),  val: document.getElementById('rightVal'),  prop: 'paddingRight' }
+};
+
+Object.keys(sliders).forEach(key => {
+    sliders[key].el.oninput = function() {
+        const val = this.value + "mm";
+        contentArea.style[sliders[key].prop] = val;
+        sliders[key].val.innerText = val;
     };
+});
 
-    Object.keys(sliders).forEach(key => {
-        sliders[key].el.oninput = function() {
-            const val = this.value + "mm";
-            content.style[sliders[key].prop] = val;
-            sliders[key].val.innerText = val;
-        };
-    });
-
-    // 2. Template Logic
-    document.getElementById('templateInput').onchange = function(e) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const img = document.getElementById('bgTemplate');
-            img.src = event.target.result;
-            img.classList.remove('hidden');
-        };
-        reader.readAsDataURL(e.target.files[0]);
+// ────────────────────────────────────────────────
+// Template Upload
+// ────────────────────────────────────────────────
+document.getElementById('templateInput').onchange = function(e) {
+    if (!e.target.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        const img = document.getElementById('bgTemplate');
+        img.src = ev.target.result;
+        img.classList.remove('hidden');
     };
+    reader.readAsDataURL(e.target.files[0]);
+};
 
-    // 3. OCR Logic
-    async function processOCR() {
-        const file = document.getElementById('receivedLetterInput').files[0];
-        if (!file) return alert("Upload a letter first.");
-        const btn = document.getElementById('ocrBtn');
-        btn.innerText = "⏳ Processing...";
-        try {
-            const { data: { text } } = await Tesseract.recognize(file, 'eng');
-            document.getElementById('userPrompt').value = "REPLY TO: " + text;
-            btn.innerText = "✅ Done";
-        } catch (e) { alert("OCR Failed"); btn.innerText = "Retry"; }
+// ────────────────────────────────────────────────
+// OCR
+// ────────────────────────────────────────────────
+async function processOCR() {
+    const file = document.getElementById('receivedLetterInput').files[0];
+    if (!file) return alert("Please upload an image of the received letter.");
+    
+    const btn = document.getElementById('ocrBtn');
+    btn.innerText = "⏳ Scanning...";
+    btn.disabled = true;
+
+    try {
+        const { data: { text } } = await Tesseract.recognize(file, 'eng', {
+            logger: m => console.log(m)
+        });
+        document.getElementById('userPrompt').value = 
+            "Write a polite, formal reply letter in official style to the following received letter. Keep it concise, professional, suitable for school/government correspondence:\n\n" + text.trim().slice(0, 1800);
+        btn.innerText = "✅ Scanned";
+    } catch (err) {
+        console.error(err);
+        alert("OCR failed. Try a clearer image.");
+        btn.innerText = "Retry Scan";
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+// ────────────────────────────────────────────────
+// AI Draft – Using Groq API
+// ────────────────────────────────────────────────
+async function generateAIDraft() {
+    const promptInput = document.getElementById('userPrompt').value.trim();
+    if (!promptInput) return alert("Please enter some context or purpose for the letter.");
+
+    if (!groqApiKey) {
+        alert("Please enter your Groq API key first (in the field above).");
+        apiKeyInput.focus();
+        return;
     }
 
-    // 4. AI Logic (Placeholder)
-    async function generateAIDraft() {
-        const prompt = document.getElementById('userPrompt').value;
-        const body = document.getElementById('bodyText');
-        body.innerHTML = "<i>AI Drafting...</i>";
-        setTimeout(() => {
-            body.innerText = "With regard to the modernization of our computer lab under the Smart School Initiative, we are pleased to submit the detailed project proposal. " + (prompt.includes("REPLY") ? "As requested in your previous communication, we have attached the technical specifications." : "");
-            document.getElementById('signatory').innerText = "Rajarajan\nIT In-Charge, AGMHSS";
-        }, 1200);
-    }
+    const body = document.getElementById('bodyText');
+    body.innerHTML = "<i>Drafting with AI (via Groq)...</i>";
 
-    // 5. PDF Download
-    function downloadPDF() {
+    try {
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${groqApiKey}`
+            },
+            body: JSON.stringify({
+                model: "llama-3.1-8b-instant",
+                messages: [
+                    {
+                        role: "system",
+                        content: "You are a professional assistant writing formal official letters for a school (AGMHSS). Use polite, respectful Indian English suitable for government/school correspondence. Structure: salutation already exists, so start directly with the body. Keep total body 150–350 words unless very complex. End naturally before closing lines."
+                    },
+                    {
+                        role: "user",
+                        content: promptInput + "\n\nWrite only the main body paragraphs of the letter (no salutation, no closing like 'Yours faithfully'). Make it ready to paste into the body area."
+                    }
+                ],
+                temperature: 0.65,
+                max_tokens: 600
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`API error: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+        const generatedText = data.choices[0].message.content.trim();
+
+        body.innerText = generatedText || "(No content generated – try a clearer prompt)";
+    } catch (err) {
+        console.error(err);
+        body.innerHTML = `<span class='text-red-600'>Error: ${err.message || 'Could not connect to Groq API'}</span><br>Check your API key and internet.`;
+    }
+}
+
+// ────────────────────────────────────────────────
+// PDF Download
+// ────────────────────────────────────────────────
+function downloadPDF() {
+    window.scrollTo(0, 0);
     const element = document.getElementById('letter-preview');
 
-    // Very important: scroll to top before capture (prevents blank top page)
-    window.scrollTo(0, 0);
-
     const opt = {
-        margin:       [0, 0, 0, 0],           // no extra margin around the element
-        filename:     'Official_Letter.pdf',
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { 
-            scale:          2,                // good balance between quality & performance
-            useCORS:        true,
-            logging:        false,
+        margin: [0,0,0,0],
+        filename: 'Official_Letter_AGMHSS.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { 
+            scale: 2,
+            useCORS: true,
+            logging: false,
             letterRendering: true,
-            windowWidth:    794,              // ≈ 210mm @ 96dpi – helps force correct capture width
-            windowHeight:   1123,             // ≈ 297mm @ 96dpi
-            x:              0,
-            y:              0
+            windowWidth: 794,
+            windowHeight: 1123,
+            x: 0, y: 0
         },
-        jsPDF:        { 
-            unit:       'mm', 
-            format:     'a4', 
-            orientation: 'portrait'
-        },
-        pagebreak:    { mode: ['avoid-all', 'css'] }   // respect your page-break-* CSS
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css'] }
     };
 
     html2pdf().set(opt).from(element).save();
 }
-
 </script>
 </body>
-</html>
+                        </html>
