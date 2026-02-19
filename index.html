@@ -114,10 +114,22 @@
         reader.readAsDataURL(e.target.files[0]);
     };
 
-    // Margin Adjustment Logic
-    document.getElementById('marginSlider').oninput = function() {
-        document.getElementById('contentArea').style.paddingTop = this.value + "mm";
+// Margin Controls Logic
+    const content = document.getElementById('contentArea');
+    const sliders = {
+        top: { el: document.getElementById('topMargin'), val: document.getElementById('topVal'), prop: 'paddingTop' },
+        left: { el: document.getElementById('leftMargin'), val: document.getElementById('leftVal'), prop: 'paddingLeft' },
+        right: { el: document.getElementById('rightMargin'), val: document.getElementById('rightVal'), prop: 'paddingRight' }
     };
+
+    Object.keys(sliders).forEach(key => {
+        sliders[key].el.oninput = function() {
+            const val = this.value + "mm";
+            content.style[sliders[key].prop] = val;
+            sliders[key].val.innerText = val;
+        };
+    });
+
 
     // OCR Logic
     async function processOCR() {
