@@ -7,24 +7,26 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    
+   
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Tamil:wght@400;700&family=Tinos:wght@400;700&display=swap" rel="stylesheet">
-    
+   
     <style>
         .paper-font { font-family: 'Tinos', 'Noto Serif Tamil', serif; }
-        
-        #letter-preview { 
-            width: 210mm; 
-            min-height: 297mm; /* Changed from fixed height to min-height */
-            position: relative; 
+       
+        #letter-preview {
+            width: 210mm;
+            min-height: 297mm; /* min-height allows content to grow */
+            position: relative;
             background-color: white;
             margin: 20px auto;
-            overflow: visible; /* Ensure content isn't clipped */
+            overflow: visible; /* critical: don't clip content */
             box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            page-break-inside: avoid;
+            page-break-after: avoid;
         }
-        
+       
         #bgTemplate {
             position: absolute;
             top: 0; left: 0;
@@ -32,52 +34,43 @@
             object-fit: fill;
             z-index: 0;
         }
-
-        #contentArea { 
+        #contentArea {
             position: relative;
             z-index: 10;
             min-height: 297mm;
             display: flex;
             flex-direction: column;
-            /* Initial padding - will be updated by JS */
             padding: 45mm 20mm 20mm 25mm;
         }
-
-        /* Allow AI text to expand normally */
         #bodyText { outline: none; white-space: pre-wrap; }
-
-        @media print { 
-            .no-print { display: none; } 
-            body { background: white; padding: 0; }
-            #letter-preview { margin: 0; box-shadow: none; }
+        @media print {
+            .no-print { display: none; }
+            body { background: white; padding: 0; margin: 0; }
+            #letter-preview { margin: 0; box-shadow: none; overflow: visible !important; }
         }
     </style>
 </head>
 <body class="bg-slate-300 min-h-screen pb-10 font-sans">
-
 <div class="no-print bg-slate-900 text-white p-4 mb-6 shadow-md flex justify-between items-center px-10">
     <h1 class="text-xl font-bold tracking-tight">AI Letter Pad - AGMHSS</h1>
     <div class="text-xs uppercase tracking-widest text-slate-400 font-semibold">IT Department</div>
 </div>
-
 <div class="max-w-[1400px] mx-auto px-4 grid grid-cols-1 lg:grid-cols-12 gap-8">
-    
+   
     <div class="lg:col-span-4 space-y-4 no-print">
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <h2 class="font-bold text-gray-800 mb-4 border-b pb-2">கட்டுப்பாடுகள் & Tools</h2>
-            
+           
             <div class="space-y-6">
                 <div>
                     <label class="block text-xs font-bold text-slate-500 uppercase mb-1">1. Letterhead Template</label>
                     <input type="file" id="templateInput" accept="image/*" class="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200">
                 </div>
-
                 <div class="p-4 bg-indigo-50 rounded-xl border border-indigo-100">
                     <label class="block text-xs font-bold text-indigo-900 uppercase mb-1">2. Received Letter Scan (OCR)</label>
                     <input type="file" id="receivedLetterInput" accept="image/*" class="w-full text-xs mb-2">
                     <button onclick="processOCR()" id="ocrBtn" class="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700">Scan & Extract</button>
                 </div>
-
                 <div class="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
                     <p class="text-[10px] font-black text-slate-400 uppercase">Font & Margins</p>
                     <div>
@@ -93,34 +86,30 @@
                         <input type="range" id="topMargin" min="20" max="100" value="45" class="w-full h-1.5 bg-slate-300 rounded-lg cursor-pointer accent-slate-800">
                     </div>
                 </div>
-
                 <div>
                     <label class="block text-xs font-bold text-slate-500 uppercase mb-1">3. Groq API Key</label>
                     <input type="password" id="groqApiKey" class="w-full border border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-slate-900 outline-none" placeholder="gsk_...">
                 </div>
-
                 <div>
                     <label class="block text-xs font-bold text-slate-500 uppercase mb-1">4. Letter Context</label>
                     <textarea id="userPrompt" rows="3" class="w-full border border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-slate-900 outline-none" placeholder="Reply context..."></textarea>
                 </div>
-
                 <button onclick="generateAIDraft()" id="genBtn" class="w-full bg-green-700 text-white py-4 rounded-xl font-bold hover:bg-green-800 shadow-lg">Generate AI Reply</button>
             </div>
         </div>
     </div>
-
     <div class="lg:col-span-8 flex flex-col items-center">
         <div class="w-full max-w-[210mm]">
             <div id="letter-preview" class="paper-font text-slate-900">
                 <img id="bgTemplate" class="hidden" alt="Letterhead">
-                
+               
                 <div id="contentArea">
                     <div id="salutation" contenteditable="true" class="font-bold mt-6">மதிப்பிற்குரிய ஐயா/அம்மா / Dear Sir/Madam,</div>
-                    
+                   
                     <div id="bodyText" contenteditable="true" class="text-justify min-h-[400px] mt-6 flex-grow">
                         டெம்ப்ளேட் பதிவேற்றி, Groq key உள்ளிட்டு AI உதவியுடன் பதில் உருவாக்கலாம்.
                     </div>
-                    
+                   
                     <div class="mt-10 pb-10">
                         <div id="thanksField" contenteditable="true">நன்றி / Thanks,</div>
                         <div class="pt-8">
@@ -130,21 +119,19 @@
                     </div>
                 </div>
             </div>
-            
+           
             <button onclick="downloadPDF()" class="no-print mt-6 mb-10 w-full bg-rose-600 text-white py-4 rounded-xl font-bold shadow-xl hover:bg-rose-700">
                 📄 Download PDF Letter
             </button>
         </div>
     </div>
 </div>
-
 <script>
-// UI Controls
+// UI Controls (unchanged)
 document.getElementById('fontSize').oninput = e => {
     document.getElementById('contentArea').style.fontSize = e.target.value + 'pt';
     document.getElementById('fontVal').innerText = e.target.value + 'pt';
 };
-
 ['topMargin','leftMargin','rightMargin'].forEach(id => {
     const el = document.getElementById(id);
     if(!el) return;
@@ -155,8 +142,7 @@ document.getElementById('fontSize').oninput = e => {
         document.getElementById(id.replace('Margin','Val')).innerText = val;
     };
 });
-
-// Template Handling
+// Template Handling (unchanged)
 document.getElementById('templateInput').onchange = e => {
     const reader = new FileReader();
     reader.onload = ev => {
@@ -166,49 +152,45 @@ document.getElementById('templateInput').onchange = e => {
     };
     reader.readAsDataURL(e.target.files[0]);
 };
-
-// OCR Processing
+// OCR Processing (unchanged)
 async function processOCR() {
     const file = document.getElementById('receivedLetterInput').files[0];
     if (!file) return alert("படம் தேர்ந்தெடுக்கவும்");
     const btn = document.getElementById('ocrBtn');
     btn.innerText = "Scanning..."; btn.disabled = true;
-    
+   
     try {
         const { data: { text } } = await Tesseract.recognize(file, 'tam+eng');
         document.getElementById('userPrompt').value = `Reply to this: \n${text.trim()}`;
         btn.innerText = "✅ Done";
     } catch (e) {
         alert("OCR Error: " + e.message);
-    } finally { 
+    } finally {
         setTimeout(() => { btn.disabled = false; btn.innerText = "Scan & Extract"; }, 2000);
     }
 }
-
-// AI Generation
+// AI Generation (unchanged)
 async function generateAIDraft() {
     const key = document.getElementById('groqApiKey').value.trim();
     const prompt = document.getElementById('userPrompt').value.trim();
     if (!key || !prompt) return alert("API Key & Context are required!");
-
     const body = document.getElementById('bodyText');
     const btn = document.getElementById('genBtn');
-    
+   
     body.innerText = "🤖 Writing letter...";
     btn.disabled = true;
-
     try {
         const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
-            headers: { 
-                "Content-Type": "application/json", 
-                "Authorization": `Bearer ${key}` 
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${key}`
             },
             body: JSON.stringify({
                 model: "llama-3.3-70b-versatile",
                 messages: [
                     {
-                        role: "system", 
+                        role: "system",
                         content: "You are a formal letter writer. Write only the body of the letter. Keep it under 400 words to fit on one page. Use professional Tamil and English where appropriate."
                     },
                     { role: "user", content: prompt }
@@ -216,7 +198,6 @@ async function generateAIDraft() {
                 temperature: 0.5
             })
         });
-
         const data = await res.json();
         if (data.choices) {
             body.innerText = data.choices[0].message.content.trim();
@@ -229,20 +210,40 @@ async function generateAIDraft() {
         btn.disabled = false;
     }
 }
-
-// PDF Download Fix
+// Improved PDF Download
 function downloadPDF() {
     const element = document.getElementById('letter-preview');
-    const opt = {
-        margin:       0,
-        filename:     'AGMHSS_Letter.pdf',
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
 
-    // New Promise-based usage:
-    html2pdf().set(opt).from(element).save();
+    // Critical fixes: scroll to top + wait for render
+    window.scrollTo(0, 0);
+
+    // Small delay for fonts/images to settle
+    setTimeout(() => {
+        const opt = {
+            margin:       0,
+            filename:     'AGMHSS_Letter.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { 
+                scale:          2,                // higher quality
+                useCORS:        true,
+                logging:        false,
+                letterRendering: true,            // better text
+                allowTaint:     false,
+                windowWidth:    794,              // 210mm @ 96dpi
+                windowHeight:   1123,             // 297mm @ 96dpi
+                x:              0,
+                y:              0
+            },
+            jsPDF:        { 
+                unit:       'mm', 
+                format:     'a4', 
+                orientation: 'portrait' 
+            },
+            pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }  // respect CSS page breaks
+        };
+
+        html2pdf().set(opt).from(element).save();
+    }, 300);  // 300ms delay – adjust to 500 if still issues
 }
 </script>
 </body>
