@@ -223,7 +223,9 @@ async function generateAIDraft() {
                 "Authorization": `Bearer ${key}` 
             },
             body: JSON.stringify({
-                model: "llama3-8b-8192",
+                model: "llama-3.1-8b-instant",  // Best direct replacement – fast & cheap
+// or
+// model: "llama-3.3-70b-versatile",  // Better quality for formal Tamil letters
                 messages: [
                     {
                         role: "system", 
