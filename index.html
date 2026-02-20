@@ -8,7 +8,9 @@
     <script src="https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/vfs_fonts.min.js"></script>
-
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Tamil:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Tinos:wght@400;700&display=swap');
         .paper-font { font-family: 'Tinos', serif; }
@@ -204,12 +206,16 @@ async function generateAIDraft() {
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${key}` },
             body: JSON.stringify({
                 model: "llama3-8b-8192",  // stable & fast
+                // or
+                model: "llama-3.1-8b-instant",  // Best direct replacement – fast & cheap
+// or
+// model: "llama-3.3-70b-versatile",  // Better quality for formal Tamil letters
                 messages: [
                     { role: "system", content: "நீங்கள் அதிகாரப்பூர்வ தமிழ் கடித எழுத்தாளர். மரியாதையாக, சுருக்கமாக, தெளிவாக எழுதவும். முழு கடிதம் மட்டும் தரவும்." },
                     { role: "user", content: prompt }
                 ],
                 temperature: 0.7,
-                max_tokens: 1200
+                max_tokens: 12000
             })
         });
         if (!res.ok) {
