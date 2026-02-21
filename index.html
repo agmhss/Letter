@@ -83,7 +83,20 @@
                         <div class="flex justify-between text-xs mb-1 font-medium text-slate-600">
                             <span>Top Margin</span><span id="topVal">45mm</span>
                         </div>
-                        <input type="range" id="topMargin" min="20" max="100" value="45" class="w-full h-1.5 bg-slate-300 rounded-lg cursor-pointer accent-slate-800">
+                        <div>
+                        <div class="flex justify-between text-xs mb-1 font-medium text-slate-600"><span>மேல் இடைவெளி</span><span id="topVal">45mm</span></div>
+                        <input type="range" id="topMargin" min="10" max="180" value="45" class="w-full h-1.5 bg-slate-300 rounded-lg appearance-none cursor-pointer accent-slate-800">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <div class="flex justify-between text-[10px] mb-1 font-bold"><span>இடது</span><span id="leftVal">25mm</span></div>
+                            <input type="range" id="leftMargin" min="10" max="80" value="25" class="w-full h-1 bg-slate-300 rounded-lg appearance-none cursor-pointer accent-slate-800">
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-[10px] mb-1 font-bold"><span>வலது</span><span id="rightVal">20mm</span></div>
+                            <input type="range" id="rightMargin" min="10" max="80" value="20" class="w-full h-1 bg-slate-300 rounded-lg appearance-none cursor-pointer accent-slate-800">
+                        </div>
                     </div>
                 </div>
                 <div>
@@ -191,7 +204,7 @@ async function generateAIDraft() {
                 messages: [
                     {
                         role: "system",
-                        content: "You are a formal letter writer. Write only the body of the letter. Keep it under 400 words to fit on one page. Use professional Tamil and English where appropriate."
+                        content: "You are a Tamil Nadu State Government Orders / Letters writer. Write only the body of the letter. Keep it under 150-200 words to fit on one page. Use Tamil or English where appropriate."
                     },
                     { role: "user", content: prompt }
                 ],
