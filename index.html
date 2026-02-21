@@ -59,7 +59,7 @@
    
     <div class="lg:col-span-4 space-y-4 no-print">
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <h2 class="font-bold text-gray-800 mb-4 border-b pb-2">கட்டுப்பாடுகள் & Tools</h2>
+            <h2 class="font-bold text-gray-800 mb-4 border-b pb-2">Tools</h2>
            
             <div class="space-y-6">
                 <div>
@@ -117,18 +117,11 @@
                 <img id="bgTemplate" class="hidden" alt="Letterhead">
                
                 <div id="contentArea">
-                    <div id="salutation" contenteditable="true" class="font-bold mt-6">மதிப்பிற்குரிய ஐயா/அம்மா / Dear Sir/Madam,</div>
-                   
-                    <div id="bodyText" contenteditable="true" class="text-justify min-h-[400px] mt-6 flex-grow">
+                <div id="bodyText" contenteditable="true" class="text-justify min-h-[400px] mt-6 flex-grow">
                         டெம்ப்ளேட் பதிவேற்றி, Groq key உள்ளிட்டு AI உதவியுடன் பதில் உருவாக்கலாம்.
                     </div>
                    
-                    <div class="mt-10 pb-10">
-                        <div id="thanksField" contenteditable="true">நன்றி / Thanks,</div>
-                        <div class="pt-8">
-                            <p>உங்கள் உண்மையான / Yours sincerely,</p>
-                            <p id="signatory" contenteditable="true" class="font-bold mt-4 italic">[பெயர்/Designation]</p>
-                        </div>
+                 
                     </div>
                 </div>
             </div>
@@ -204,7 +197,7 @@ async function generateAIDraft() {
                 messages: [
                     {
                         role: "system",
-                        content: "You are a Tamil Nadu State Government Orders / Letters writer. Write only the body of the letter. Keep it under 150-200 words to fit on one page. Use Tamil or English where appropriate."
+                        content: "You are a Tamil Nadu State Government Orders / Letters writer. Write it in 75-200 words to fit on one page."
                     },
                     { role: "user", content: prompt }
                 ],
