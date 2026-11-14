@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Smart Letter Drafter - AGMHSS</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tesseract.js v5 for accurate Tamil + English OCR -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    
+    <!-- PDF.js for PDF Text & Canvas Rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    
+    <!-- Mammoth.js for DOCX Text Extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    
+    <!-- html2pdf.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;600;700&family=Noto+Serif+Tamil:wght@400;700&family=Tinos:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        .paper-font { font-family: 'Tinos', 'Noto Serif Tamil', 'Noto Sans Tamil', serif; }
+        
+        #letter-preview {
+            width: 210mm;
+            min-height: 297mm;
+            position: relative;
+            background-color: white;
+            margin: 0 auto;
+            overflow: visible;
+            box-shadow: 0 12px 35px rgba(0,0,0,0.18);
+            page-break-inside: avoid;
+            page-break-after: avoid;
+        }
+        
+        #bgTemplate {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            object-fit: fill;
+            z-index: 0;
+            pointer-events: none;
+        }
+        
+        #contentArea {
+            position: relative;
+            z-index: 10;
+            min-height: 297mm;
+            display: flex;
+            flex-direction: column;
+            padding: 45mm 20mm 20mm 25mm;
+            font-size: 12pt;
+            line-height: 1.6;
+        }
+        
+        #bodyText {
+            outline: none;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        
+        #bodyText:empty:before {
+            content: attr(data-placeholder);
+            color: #94a3b8;
+            font-style: italic;
+        }
+
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white; padding: 0; margin: 0; }
+            #letter-preview { margin: 0; box-shadow: none; width: 210mm; min-height: 297mm; }
+        }
+    </style>
+</head>
+<body class="bg-slate-200 min-h-screen pb-12 font-sans text-slate-800">
+
+<!-- Top Navigation Bar -->
+<header class="no-print bg-slate-900 text-white py-3.5 px-6 lg:px-10 mb-6 shadow-md flex flex-wrap justify-between items-center gap-4">
+    <div class="flex items-center gap-3">
+        <span class="bg-indigo-600 text-white p-2 rounded-lg font-bold text-sm">AGMHSS</span>
+        <div>
+            <h1 class="text-lg font-bold tracking-tight">AI Smart Letter Pad</h1>
+            <p class="text-[11px] text-slate-400">Official Tamil & English Correspondence Drafter</p>
+        </div>
+    </div>
+    <div class="flex items-center gap-4">
+        <span id="keyStatusBadge" class="text-xs px-3 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
+            🔑 API Key Not Saved
+        </span>
+        <div class="text-xs uppercase tracking-widest text-slate-400 font-semibold hidden sm:block">IT Department</div>
+    </div>
+</header>
+
+<!-- Main Content Grid -->
+<main class="max-w-[1440px] mx-auto px-4 grid grid-cols-1 lg:grid-cols-12 gap-8">
+    
+    <!-- Left Control Panel -->
+    <div class="lg:col-span-4 space-y-5 no-print">
+        
+        <!-- 1. Groq API & Model Configuration -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 space-y-4">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h2 class="font-bold text-slate-800 text-sm uppercase tracking-wider">1. Groq AI Setup</h2>
+                <button onclick="clearSavedKey()" class="text-[11px] text-rose-600 hover:underline font-medium">Clear Key</button>
+            </div>
+            
+            <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">Groq API Key (Saved in Browser)</label>
+                <div class="relative flex items-center">
+                    <input type="password" id="groqApiKey" 
+                        class="w-full border border-slate-300 rounded-lg pl-3 pr-16 py-2 text-sm focus:ring-2 focus:ring-indigo-600 outline-none" 
+                        placeholder="gsk_...">
+                    <button type="button" onclick="toggleKeyVisibility()" id="toggleKeyBtn" 
+                        class="absolute right-2 text-xs text-slate-500 hover:text-slate-800 font-semibold px-2 py-1">
+                        Show
+                    </button>
+                </div>
+            </div>
+
+            <div>
+                <div class="flex justify-between items-center mb-1">
+                    <label class="block text-xs font-bold text-slate-600">Select Working Groq Model</label>
+                    <button onclick="fetchGroqModels()" id="refreshModelsBtn" class="text-[11px] text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1">
+                        🔄 Refresh List
+                    </button>
+                </div>
+                <select id="groqModelSelect" class="w-full border border-slate-300 rounded-lg p-2 text-sm bg-slate-50 focus:ring-2 focus:ring-indigo-600 outline-none font-medium">
+                    <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile (Recommended)</option>
+                    <option value="llama-3.1-8b-instant">llama-3.1-8b-instant (Fast)</option>
+                    <option value="mixtral-8x7b-32768">mixtral-8x7b-32768</option>
+                    <option value="gemma2-9b-it">gemma2-9b-it</option>
+                </select>
+                <p id="modelStatusMsg" class="text-[11px] text-slate-400 mt-1">Enter API key to load live available models from Groq.</p>
+            </div>
+        </div>
+
+        <!-- 2. OCR & File Extraction -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 space-y-4">
+            <h2 class="font-bold text-slate-800 text-sm uppercase tracking-wider border-b pb-2">2. Incoming Letter Scan / File</h2>
+            
+            <div class="p-3.5 bg-indigo-50/70 rounded-xl border border-indigo-100 space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-indigo-950 mb-1">Upload Image, PDF, DOCX, or TXT</label>
+                    <input type="file" id="receivedLetterInput" accept="image/*,.pdf,.docx,.txt" 
+                        class="w-full text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 items-center">
+                    <div>
+                        <label class="block text-[10px] font-bold text-indigo-900 uppercase mb-0.5">OCR Language</label>
+                        <select id="ocrLang" class="w-full text-xs border border-indigo-200 rounded-lg p-1.5 bg-white">
+                            <option value="tam+eng">Tamil + English</option>
+                            <option value="tam">Tamil Only (தமிழ்)</option>
+                            <option value="eng">English Only</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center pt-4">
+                        <label class="flex items-center gap-1.5 text-xs text-indigo-900 cursor-pointer font-medium">
+                            <input type="checkbox" id="enhanceOcr" checked class="rounded text-indigo-600 focus:ring-indigo-500">
+                            Enhance Scan
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div id="ocrProgressWrap" class="hidden space-y-1">
+                    <div class="flex justify-between text-[11px] font-semibold text-indigo-800">
+                        <span id="ocrStatusText">Initializing...</span>
+                        <span id="ocrPercent">0%</span>
+                    </div>
+                    <div class="w-full bg-indigo-200 rounded-full h-2 overflow-hidden">
+                        <div id="ocrProgressBar" class="bg-indigo-600 h-2 transition-all duration-200" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <button onclick="extractFileContents()" id="ocrBtn" 
+                    class="w-full bg-indigo-600 text-white py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-indigo-700 transition shadow-sm">
+                    🔍 Scan & Extract Content
+                </button>
+            </div>
+
+            <!-- Extracted Content & Instructions -->
+            <div>
+                <div class="flex justify-between items-center mb-1">
+                    <label class="block text-xs font-bold text-slate-600">Extracted Content / Reference Text</label>
+                    <button onclick="document.getElementById('extractedText').value=''" class="text-[11px] text-slate-400 hover:text-slate-600">Clear</button>
+                </div>
+                <textarea id="extractedText" rows="4" 
+                    class="w-full border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-indigo-600 outline-none bg-slate-50" 
+                    placeholder="Scanned text from image/PDF/DOCX will appear here (or paste incoming letter text directly)..."></textarea>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">Reply Instructions / Key Points</label>
+                <textarea id="userPrompt" rows="3" 
+                    class="w-full border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-indigo-600 outline-none" 
+                    placeholder="E.g., Write an official reply in Tamil stating that 45 students from Class 9 will attend the competition..."></textarea>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Output Language</label>
+                    <select id="replyLang" class="w-full border border-slate-300 rounded-lg p-2 text-xs bg-white font-medium">
+                        <option value="Tamil">Formal Tamil (தமிழ்)</option>
+                        <option value="English">Formal English</option>
+                        <option value="Bilingual (Tamil & English)">Bilingual</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Tone / Format</label>
+                    <select id="replyFormat" class="w-full border border-slate-300 rounded-lg p-2 text-xs bg-white font-medium">
+                        <option value="TN School Education Dept Official Letter (ந.க.எண் / பொருள் / பார்வை)">TN Official (ந.க.எண்)</option>
+                        <option value="Standard Formal Letter">Standard Formal</option>
+                        <option value="Short Memo / Circular">Circular / Memo</option>
+                    </select>
+                </div>
+            </div>
+
+            <button onclick="generateAIDraft()" id="genBtn" 
+                class="w-full bg-emerald-600 text-white py-3.5 rounded-xl font-bold text-sm hover:bg-emerald-700 shadow-md transition flex justify-center items-center gap-2">
+                <span>✨ Generate Official Draft</span>
+            </button>
+        </div>
+
+        <!-- 3. Letterhead & Layout Controls -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 space-y-4">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h2 class="font-bold text-slate-800 text-sm uppercase tracking-wider">3. Letterhead & Margins</h2>
+                <button onclick="clearLetterhead()" class="text-[11px] text-rose-600 hover:underline font-medium">Remove BG</button>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">Background Letterhead Image</label>
+                <input type="file" id="templateInput" accept="image/*" 
+                    class="w-full text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer">
+            </div>
+
+            <div class="space-y-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                <div>
+                    <div class="flex justify-between text-xs mb-1 font-bold text-indigo-700">
+                        <span>Font Size (எழுத்து அளவு)</span><span id="fontVal">12pt</span>
+                    </div>
+                    <input type="range" id="fontSize" min="9" max="20" step="0.5" value="12" class="w-full h-1.5 bg-indigo-200 rounded-lg cursor-pointer accent-indigo-600">
+                </div>
+
+                <div>
+                    <div class="flex justify-between text-xs mb-1 font-semibold text-slate-700">
+                        <span>Top Margin (மேல் இடைவெளி)</span><span id="topVal">45mm</span>
+                    </div>
+                    <input type="range" id="topMargin" min="10" max="160" value="45" class="w-full h-1.5 bg-slate-300 rounded-lg cursor-pointer accent-slate-800">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <div class="flex justify-between text-[11px] mb-1 font-semibold text-slate-700">
+                            <span>இடது (Left)</span><span id="leftVal">25mm</span>
+                        </div>
+                        <input type="range" id="leftMargin" min="10" max="80" value="25" class="w-full h-1.5 bg-slate-300 rounded-lg cursor-pointer accent-slate-800">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-[11px] mb-1 font-semibold text-slate-700">
+                            <span>வலது (Right)</span><span id="rightVal">20mm</span>
+                        </div>
+                        <input type="range" id="rightMargin" min="10" max="80" value="20" class="w-full h-1.5 bg-slate-300 rounded-lg cursor-pointer accent-slate-800">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Preview & Export Area -->
+    <div class="lg:col-span-8 flex flex-col items-center">
+        <!-- Action Bar Above Paper -->
+        <div class="no-print w-full max-w-[210mm] mb-3 flex flex-wrap justify-between items-center gap-2 bg-white px-4 py-2.5 rounded-xl shadow-sm border border-slate-200">
+            <span class="text-xs font-semibold text-slate-500">💡 Click directly on the white paper below to edit text before exporting.</span>
+            <div class="flex items-center gap-2">
+                <button onclick="window.print()" class="px-3.5 py-1.5 bg-slate-800 text-white rounded-lg text-xs font-bold hover:bg-slate-900 transition">
+                    🖨️ Print
+                </button>
+                <button onclick="downloadPDF()" class="px-4 py-1.5 bg-rose-600 text-white rounded-lg text-xs font-bold hover:bg-rose-700 transition shadow-sm">
+                    📄 Download PDF
+                </button>
+            </div>
+        </div>
+
+        <!-- A4 Sheet Container -->
+        <div class="w-full overflow-x-auto flex justify-center pb-8">
+            <div id="letter-preview" class="paper-font text-slate-900">
+                <img id="bgTemplate" class="hidden" alt="Letterhead">
+                <div id="contentArea">
+                    <div id="bodyText" contenteditable="true" spellcheck="false" 
+                        data-placeholder="Your generated or typed official letter will appear here. Click anywhere to start typing or use the AI generator on the left..."
+                        class="text-justify flex-grow"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Hidden Canvas for Image Preprocessing & PDF OCR -->
+<canvas id="ocrCanvas" class="hidden"></canvas>
+
+<script>
+// Configure PDF.js worker
+if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+const STORAGE_KEYS = {
+    API_KEY: 'agmhss_groq_api_key',
+    MODEL: 'agmhss_groq_model',
+    TEMPLATE: 'agmhss_letterhead_bg'
+};
+
+// Initialize state from Browser LocalStorage
+window.addEventListener('DOMContentLoaded', () => {
+    const savedKey = localStorage.getItem(STORAGE_KEYS.API_KEY);
+    const savedModel = localStorage.getItem(STORAGE_KEYS.MODEL);
+    const savedTemplate = localStorage.getItem(STORAGE_KEYS.TEMPLATE);
+
+    if (savedKey) {
+        document.getElementById('groqApiKey').value = savedKey;
+        updateKeyBadge(true);
+        fetchGroqModels(savedModel);
+    }
+
+    if (savedTemplate) {
+        const img = document.getElementById('bgTemplate');
+        img.src = savedTemplate;
+        img.classList.remove('hidden');
+    }
+});
+
+// Save API Key immediately on input & fetch models
+document.getElementById('groqApiKey').addEventListener('input', (e) => {
+    const val = e.target.value.trim();
+    if (val) {
+        localStorage.setItem(STORAGE_KEYS.API_KEY, val);
+        updateKeyBadge(true);
+    } else {
+        localStorage.removeItem(STORAGE_KEYS.API_KEY);
+        updateKeyBadge(false);
+    }
+});
+
+document.getElementById('groqApiKey').addEventListener('change', () => {
+    fetchGroqModels();
+});
+
+document.getElementById('groqModelSelect').addEventListener('change', (e) => {
+    localStorage.setItem(STORAGE_KEYS.MODEL, e.target.value);
+});
+
+function updateKeyBadge(isSaved) {
+    const badge = document.getElementById('keyStatusBadge');
+    if (isSaved) {
+        badge.innerText = '✅ API Key Stored Locally';
+        badge.className = 'text-xs px-3 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700';
+    } else {
+        badge.innerText = '🔑 API Key Not Saved';
+        badge.className = 'text-xs px-3 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700';
+    }
+}
+
+function toggleKeyVisibility() {
+    const input = document.getElementById('groqApiKey');
+    const btn = document.getElementById('toggleKeyBtn');
+    if (input.type === 'password') {
+        input.type = 'text';
+        btn.innerText = 'Hide';
+    } else {
+        input.type = 'password';
+        btn.innerText = 'Show';
+    }
+}
+
+function clearSavedKey() {
+    localStorage.removeItem(STORAGE_KEYS.API_KEY);
+    document.getElementById('groqApiKey').value = '';
+    updateKeyBadge(false);
+}
+
+// Fetch live working chat models from Groq API
+async function fetchGroqModels(preferredModel = null) {
+    const key = document.getElementById('groqApiKey').value.trim();
+    const statusMsg = document.getElementById('modelStatusMsg');
+    const select = document.getElementById('groqModelSelect');
+    const currentSelection = preferredModel || select.value;
+
+    if (!key) {
+        statusMsg.innerText = 'Please enter your Groq API key first.';
+        return;
+    }
+
+    statusMsg.innerText = 'Fetching active models from Groq...';
+
+    try {
+        const res = await fetch('https://api.groq.com/openai/v1/models', {
+            headers: { 'Authorization': `Bearer ${key}` }
+        });
+
+        if (!res.ok) throw new Error('Invalid API Key or Network Error');
+
+        const data = await res.json();
+        if (data && Array.isArray(data.data)) {
+            // Filter out audio/whisper/guard/embedding models so only text generation models remain
+            const chatModels = data.data
+                .filter(m => m.active !== false)
+                .map(m => m.id)
+                .filter(id => !id.includes('whisper') && !id.includes('guard') && !id.includes('tts') && !id.includes('embed'))
+                .sort();
+
+            if (chatModels.length > 0) {
+                select.innerHTML = '';
+                chatModels.forEach(modelId => {
+                    const opt = document.createElement('option');
+                    opt.value = modelId;
+                    opt.textContent = modelId;
+                    select.appendChild(opt);
+                });
+
+                if (chatModels.includes(currentSelection)) {
+                    select.value = currentSelection;
+                } else if (chatModels.includes('llama-3.3-70b-versatile')) {
+                    select.value = 'llama-3.3-70b-versatile';
+                }
+
+                localStorage.setItem(STORAGE_KEYS.MODEL, select.value);
+                statusMsg.innerText = `Loaded ${chatModels.length} working models from Groq.`;
+                statusMsg.className = 'text-[11px] text-emerald-600 mt-1 font-medium';
+            }
+        }
+    } catch (err) {
+        statusMsg.innerText = 'Using default models (Could not verify live list: ' + err.message + ')';
+        statusMsg.className = 'text-[11px] text-amber-600 mt-1';
+    }
+}
+
+// UI Font & Margin Sliders
+document.getElementById('fontSize').oninput = e => {
+    document.getElementById('contentArea').style.fontSize = e.target.value + 'pt';
+    document.getElementById('fontVal').innerText = e.target.value + 'pt';
+};
+
+['topMargin', 'leftMargin', 'rightMargin'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.oninput = e => {
+        const prop = id === 'topMargin' ? 'paddingTop' : (id === 'leftMargin' ? 'paddingLeft' : 'paddingRight');
+        const val = e.target.value + 'mm';
+        document.getElementById('contentArea').style[prop] = val;
+        document.getElementById(id.replace('Margin', 'Val')).innerText = val;
+    };
+});
+
+// Letterhead Template Handling with LocalStorage Persistence
+document.getElementById('templateInput').onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        const dataUrl = ev.target.result;
+        const img = document.getElementById('bgTemplate');
+        img.src = dataUrl;
+        img.classList.remove('hidden');
+        try {
+            localStorage.setItem(STORAGE_KEYS.TEMPLATE, dataUrl);
+        } catch (err) {
+            console.warn('Template image too large for localStorage persistence, applied for session only.');
+        }
+    };
+    reader.readAsDataURL(file);
+};
+
+function clearLetterhead() {
+    localStorage.removeItem(STORAGE_KEYS.TEMPLATE);
+    const img = document.getElementById('bgTemplate');
+    img.src = '';
+    img.classList.add('hidden');
+    document.getElementById('templateInput').value = '';
+}
+
+// Image Preprocessing for sharper OCR
+function preprocessImage(imageSource, enhance) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.getElementById('ocrCanvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+
+            if (enhance) {
+                const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const d = imgData.data;
+                // Convert to high-contrast grayscale
+                for (let i = 0; i < d.length; i += 4) {
+                    const avg = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+                    const contrast = avg > 145 ? Math.min(255, avg * 1.15) : Math.max(0, avg * 0.75);
+                    d[i] = d[i + 1] = d[i + 2] = contrast;
+                }
+                ctx.putImageData(imgData, 0, 0);
+            }
+            resolve(canvas.toDataURL('image/png'));
+        };
+        img.src = imageSource;
+    });
+}
+
+function updateOcrProgress(status, pct) {
+    const wrap = document.getElementById('ocrProgressWrap');
+    wrap.classList.remove('hidden');
+    document.getElementById('ocrStatusText').innerText = status;
+    const cleanPct = Math.min(100, Math.max(0, Math.round(pct)));
+    document.getElementById('ocrPercent').innerText = cleanPct + '%';
+    document.getElementById('ocrProgressBar').style.width = cleanPct + '%';
+}
+
+// Multi-Format File Extraction & OCR
+async function extractFileContents() {
+    const fileInput = document.getElementById('receivedLetterInput');
+    const file = fileInput.files[0];
+    if (!file) return alert('தயவுசெய்து ஒரு கோப்பைத் தேர்ந்தெடுக்கவும் (Please select an image, PDF, DOCX, or TXT file).');
+
+    const btn = document.getElementById('ocrBtn');
+    const lang = document.getElementById('ocrLang').value;
+    const enhance = document.getElementById('enhanceOcr').checked;
+    const outputBox = document.getElementById('extractedText');
+
+    btn.disabled = true;
+    btn.innerText = '⏳ Processing File...';
+    updateOcrProgress('Reading file...', 5);
+
+    const ext = file.name.split('.').pop().toLowerCase();
+
+    try {
+        let extracted = '';
+
+        if (ext === 'txt') {
+            updateOcrProgress('Extracting plain text...', 50);
+            extracted = await file.text();
+            updateOcrProgress('Completed!', 100);
+
+        } else if (ext === 'docx') {
+            updateOcrProgress('Extracting Word document...', 40);
+            const arrayBuffer = await file.arrayBuffer();
+            const result = await mammoth.extractRawText({ arrayBuffer });
+            extracted = result.value;
+            updateOcrProgress('Completed!', 100);
+
+        } else if (ext === 'pdf') {
+            extracted = await extractFromPDF(file, lang, enhance);
+
+        } else if (file.type.startsWith('image/')) {
+            const dataUrl = await new Promise((res) => {
+                const r = new FileReader();
+                r.onload = e => res(e.target.result);
+                r.readAsDataURL(file);
+            });
+            updateOcrProgress('Enhancing image for OCR...', 15);
+            const processedDataUrl = await preprocessImage(dataUrl, enhance);
+            extracted = await runTesseractOCR(processedDataUrl, lang);
+        } else {
+            throw new Error('Unsupported file format. Please upload Image, PDF, DOCX, or TXT.');
+        }
+
+        outputBox.value = extracted.trim();
+        btn.innerText = '✅ Extraction Complete';
+    } catch (err) {
+        alert('Extraction Error: ' + err.message);
+        updateOcrProgress('Failed', 0);
+    } finally {
+        setTimeout(() => {
+            btn.disabled = false;
+            btn.innerText = '🔍 Scan & Extract Content';
+        }, 2000);
+    }
+}
+
+async function runTesseractOCR(imageSource, lang) {
+    const worker = await Tesseract.createWorker(lang, 1, {
+        logger: m => {
+            if (m.status === 'recognizing text') {
+                updateOcrProgress('Running OCR (' + lang + ')...', m.progress * 100);
+            } else {
+                updateOcrProgress(m.status, 25);
+            }
+        }
+    });
+    const { data: { text } } = await worker.recognize(imageSource);
+    await worker.terminate();
+    updateOcrProgress('OCR Completed!', 100);
+    return text;
+}
+
+async function extractFromPDF(file, lang, enhance) {
+    updateOcrProgress('Loading PDF document...', 10);
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let fullText = '';
+
+    // Step 1: Attempt digital text extraction first
+    for (let i = 1; i <= pdf.numPages; i++) {
+        updateOcrProgress(`Reading PDF page ${i} of ${pdf.numPages}...`, (i / pdf.numPages) * 40);
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map(item => item.str).join(' ');
+        fullText += pageText + '\n\n';
+    }
+
+    // Step 2: If digital text is empty/minimal (scanned PDF), run OCR on rendered pages
+    if (fullText.replace(/\s+/g, '').length < 30) {
+        fullText = '';
+        const canvas = document.getElementById('ocrCanvas');
+        const ctx = canvas.getContext('2d');
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+            updateOcrProgress(`Scanned PDF detected: Rendering page ${i}/${pdf.numPages} for OCR...`, 20);
+            const page = await pdf.getPage(i);
+            const viewport = page.getViewport({ scale: 2.0 });
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            await page.render({ canvasContext: ctx, viewport }).promise;
+
+            const pageDataUrl = canvas.toDataURL('image/png');
+            const processedUrl = await preprocessImage(pageDataUrl, enhance);
+            const ocrPageText = await runTesseractOCR(processedUrl, lang);
+            fullText += `--- Page ${i} ---\n${ocrPageText}\n\n`;
+        }
+    } else {
+        updateOcrProgress('PDF Text Extracted!', 100);
+    }
+
+    return fullText;
+}
+
+// AI Draft Generation via Groq
+async function generateAIDraft() {
+    const key = document.getElementById('groqApiKey').value.trim();
+    const model = document.getElementById('groqModelSelect').value;
+    const extracted = document.getElementById('extractedText').value.trim();
+    const instructions = document.getElementById('userPrompt').value.trim();
+    const replyLang = document.getElementById('replyLang').value;
+    const replyFormat = document.getElementById('replyFormat').value;
+
+    if (!key) return alert('Please enter your Groq API Key first!');
+    if (!extracted && !instructions) return alert('Please provide either scanned letter content or reply instructions!');
+
+    const body = document.getElementById('bodyText');
+    const btn = document.getElementById('genBtn');
+
+    body.innerText = '🤖 Drafting official letter using ' + model + '...';
+    btn.disabled = true;
+
+    const systemPrompt = `You are an expert Tamil Nadu State Government / School Education Department official correspondence drafter for Anna Government Model Higher Secondary School (AGMHSS).
+Draft a clear, well-structured, ready-to-print letter in ${replyLang} following the ${replyFormat} format.
+Keep the length appropriate to fit cleanly on a single A4 page (typically 120-250 words). Do not include markdown code blocks or conversational filler—output ONLY the letter text.`;
+
+    const combinedUserContent = [
+        extracted ? `INCOMING / REFERENCE LETTER CONTENT:\n"""\n${extracted}\n"""` : '',
+        instructions ? `DRAFTING INSTRUCTIONS:\n"""\n${instructions}\n"""` : 'Draft an appropriate official reply to the reference letter above.'
+    ].filter(Boolean).join('\n\n');
+
+    try {
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${key}`
+            },
+            body: JSON.stringify({
+                model: model,
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: combinedUserContent }
+                ],
+                temperature: 0.4
+            })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.error?.message || 'Groq API Error');
+        }
+
+        if (data.choices && data.choices[0]) {
+            body.innerText = data.choices[0].message.content.trim();
+        } else {
+            throw new Error('Empty response from model.');
+        }
+    } catch (e) {
+        body.innerText = '❌ Error: ' + e.message;
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+// High-Resolution A4 PDF Download
+function downloadPDF() {
+    const element = document.getElementById('letter-preview');
+    window.scrollTo(0, 0);
+
+    setTimeout(() => {
+        const opt = {
+            margin:       0,
+            filename:     `AGMHSS_Letter_${new Date().toISOString().slice(0,10)}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  {
+                scale:           2,
+                useCORS:         true,
+                logging:         false,
+                letterRendering: true,
+                windowWidth:     794,
+                windowHeight:    1123,
+                x:               0,
+                y:               0
+            },
+            jsPDF:        {
+                unit:        'mm',
+                format:      'a4',
+                orientation: 'portrait'
+            },
+            pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+        };
+
+        html2pdf().set(opt).from(element).save();
+    }, 250);
+}
+</script>
+</body>
+</html>
